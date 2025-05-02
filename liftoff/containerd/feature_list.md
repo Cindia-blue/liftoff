@@ -1,3 +1,48 @@
+PR #10705 - EROFS snapshotter and differ: 该 PR 为 containerd 增加了对 EROFS（Enhanced Read-Only File System） 的 snapshotter 与 differ 支持，使得容器可以使用高压缩率、只读优化的镜像格式进行运行，显著提升冷启动性能与存储效率，特别适用于云原生环境与 image acceleration 场景。
+
+⸻
+
+重点价值
+
+✅ 什么是 EROFS？
+	•	一种 只读压缩文件系统，由阿里云开发，已合并进 Linux 内核；
+	•	支持 块级随机访问 + 页缓存直通，比 SquashFS 更适合容器场景；
+	•	主要用于：
+	•	镜像加速（如 Nydus、Dragonfly、Kata）
+	•	无状态容器
+	•	低 I/O 环境（云原生节点、边缘设备）
+
+✅ 这次 PR 做了什么？
+	1.	引入了 erofs 类型的 snapshotter 插件（plugin 注册方式，和 overlayfs snapshotter 平行）；
+	2.	实现了 erofs differ 模块，用于 layer diff 比较；
+	3.	接入 snapshot plugin 体系（支持 plugin discovery / lazy loading）；
+	4.	提供了 EROFS-specific 配置项支持；
+	5.	通过 CI 验证，标记为 experimental。
+
+
+
+
+
+
+PR #10745 - Add no_sync option to boost boltDB performance on ephemeral environments: 该 PR 引入了一个 no_sync 配置选项，允许在易失性（ephemeral）环境中跳过对 BoltDB 的 fsync 调用，从而显著提高 metadata 读写性能，适用于测试、CI、短生命周期容器等非持久化场景。
+
+⸻
+
+为什么它值得关注？
+
+✅ 重要背景：
+	•	containerd 使用 BoltDB 存储元数据（如 leases、snapshots、content refs 等）；
+	•	默认情况下，BoltDB 每次事务提交都会调用 fsync，确保数据写入磁盘；
+	•	在 临时容器环境（如 CI、test containers、短命任务）中，这个 fsync 代价高且 没有必要，因为：
+	•	容器生命周期短；
+	•	文件系统本身可能是 tmpfs（内存盘）或 sandbox；
+	•	持久化安全性不是目标，性能才是重点。
+
+✅ 这个 PR 的改动点：
+	•	添加了一个配置字段 no_sync（布尔值）；
+	•	如果启用该选项，将在使用 BoltDB 时关闭 fsync；
+	•	明确只推荐在 ephemeral/test environments 中使用。
+
 
 PR #8259 - Add ReadonlyMounts to make overlay mounts readonly： 解决 overlayfs 多重挂载 diff 异常问题，通过 ReadonlyMount 避免 upperdir 冲突
 
