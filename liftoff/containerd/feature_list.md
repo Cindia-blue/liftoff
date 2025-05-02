@@ -1,3 +1,44 @@
+PR #11131 – Enable Writable cgroups for Unprivileged Containers
+
+一句话总结：
+
+该 PR 引入对 “unprivileged containers” 写入自身 cgroup 路径的支持（在 cgroup v2 环境下），使非特权容器能够在内核允许的范围内动态调整其资源配置，从而提升灵活性并保持兼容性。
+
+⸻
+
+背景知识：
+
+✅ 什么是 Unprivileged Container？
+	•	没有 CAP_SYS_ADMIN、不能访问 /sys/fs/cgroup 的 rootless 容器；
+	•	在 Kubernetes/Podman 等环境中广泛使用，以提升隔离性和安全性。
+
+✅ 什么是 Writable Cgroup？
+	•	是否允许容器自身（非 containerd/shim）写入其对应的 cgroup 控制文件；
+	•	在 cgroup v2 中，默认行为是不可写（尤其在 rootless 模式下）。
+
+⸻
+
+这个 PR 解决了什么问题？
+
+问题点：
+	•	在某些 workload（如 self-regulating processes / ML workload）中，容器内进程需要调整自身的 CPU/memory 限额或添加子进程；
+	•	当前 containerd 的默认策略是禁写（即使宿主系统允许），导致无法运行此类 workload。
+
+解决方案：
+	•	添加一个新的配置项（例如 AllowWritableCgroups）；
+	•	当启用该配置，并且宿主系统允许时，containerd 会将 cgroup 挂载为 rw 并放行写入；
+	•	兼容 cgroup v2 环境，同时仍保留默认 ro（安全第一）的行为。
+
+⸻
+
+实现要点：
+	•	修改了 cgroup.go 中的挂载参数；
+	•	判断是否是 unprivileged container；
+	•	增加安全性提示 & 注释，说明使用该功能的风险；
+	•	加入配置解析与插件注入，确保不会影响已有运行时。
+
+
+
 PR #10705 - EROFS snapshotter and differ: 该 PR 为 containerd 增加了对 EROFS（Enhanced Read-Only File System） 的 snapshotter 与 differ 支持，使得容器可以使用高压缩率、只读优化的镜像格式进行运行，显著提升冷启动性能与存储效率，特别适用于云原生环境与 image acceleration 场景。
 
 ⸻
