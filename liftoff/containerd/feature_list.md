@@ -1,3 +1,12 @@
+PR #10980：Remove confusing warning in cri runtime config migration
+	•	改动内容：移除了在 CRI runtime 配置迁移期间输出的误导性 warning 日志。
+	•	影响效果：减少用户在 containerd 升级或运行时看到无实际影响的警告信息，提升日志可读性与用户信任感。
+
+
+PR #175：Fix race between serve and immediate shutdown on the server
+	•	改动内容：修复了在测试场景下，当 Serve() 和 Shutdown() 几乎同时调用时，server 因所有 listener 已关闭而阻塞在 Accept() 的竞态问题。
+	•	影响效果：确保 server 在 listener 已关闭后能优雅退出，避免测试中 Serve() 被卡死或挂起。
+
 PR #11131 – Enable Writable cgroups for Unprivileged Containers
 
 一句话总结：
