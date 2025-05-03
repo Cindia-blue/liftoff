@@ -1,3 +1,95 @@
+PR #11006: Add content create event: 此 PR 为 containerd 添加了一个新的事件类型 ContentCreate，用于在内容创建时发出通知，增强了系统的可观测性和事件驱动能力。
+
+⸻
+
+背景知识
+
+在 containerd 中，内容（content）是镜像和层（layer）的基础构建块。之前，containerd 的事件系统缺少对内容创建的直接通知，导致上层系统需要通过轮询来检测内容的变化，效率较低。
+
+Issue #10508 指出，在某些情况下，内容创建后没有相应的事件通知，影响了系统的响应能力。
+
+⸻
+
+这个 PR 做了什么
+	1.	定义新事件类型：在 API 中新增了 ContentCreate 事件类型。
+	2.	在内容创建时发送事件：修改了内容存储逻辑，在内容创建成功后发送 ContentCreate 事件。
+	3.	更新事件处理机制：确保新的事件类型被正确处理和传递。
+
+⸻
+
+实现要点
+	•	事件定义：在 api/events/content.proto 中定义了新的事件类型。
+	•	事件发送：在内容创建逻辑中，调用事件发送接口，发布 ContentCreate 事件。
+	•	事件处理：更新了事件处理器，确保新的事件类型被正确识别和处理。
+
+⸻
+
+影响范围
+	•	增强可观测性：上层系统可以通过监听 ContentCreate 事件，实时获取内容创建信息，减少了轮询的需求。
+	•	提高响应能力：系统可以更快地对内容变化做出反应，提升整体性能。
+
+⸻
+
+阅读建议
+	•	查看 api/events/content.proto，了解新事件类型的定义。
+	•	阅读内容创建逻辑，了解事件发送的时机和条件。
+	•	了解事件处理机制，确保对新事件类型的支持。
+
+⸻
+
+如果你需要，我可以帮助你生成这个 PR 的 Markdown 总结文件，或者我们可以继续分析下一个 PR。请告诉我你的选择。
+
+PR #10649: integration: regression test for issue 10589: 这个 PR 添加了一个集成测试，用于验证 issue #10589 中提到的问题是否已修复 —— 当 container exit 事件发生得非常快时，task 状态可能未能被 containerd 正确记录。
+
+⸻
+
+背景知识
+	•	问题根源：在极端情况下，容器启动后立即退出，containerd 的事件处理逻辑可能来不及观察 exit event，导致 task.Status() 返回不准确（如返回为 running）。
+	•	场景：容器生命周期短暂，如命令为 /bin/true 或 /bin/echo hello 等。
+	•	Issue #10589 报告：如果你立即检查容器状态，可能会读到旧值或者状态不一致。
+
+⸻
+
+这个 PR 做了什么
+	1.	添加测试文件：
+test/integration/container_task_test.go
+	2.	新增测试函数：
+
+func TestTaskStatusAfterExit(t *testing.T) {
+
+
+	3.	测试逻辑：
+	•	创建一个非常快退出的容器（如 /bin/true）。
+	•	调用 task.Start(ctx)。
+	•	立刻调用 task.Wait() 等待其退出。
+	•	然后调用 task.Status(ctx) 检查状态必须为 stopped。
+	•	最后清理资源。
+
+⸻
+
+实现要点
+	•	使用 require.Eventually 等待状态变为 stopped，避免 race。
+	•	强调 task 状态反映必须准确，否则可能引起上层 scheduler、metrics 系统误判。
+
+⸻
+
+影响范围
+	•	仅添加测试，对现有逻辑无功能性修改。
+	•	提高了 containerd 在短生命周期容器处理上的可靠性回归保障。
+
+⸻
+
+阅读建议
+
+这个 PR 的代码量不大、逻辑简单清晰，建议你可以：
+	•	顺带翻一翻 task.Status() 的调用实现（在 runtime/v2/shim 下）。
+	•	快速过一下 testutil 工具和 Wait() 的实现，看下 signal 是怎么被通知的。
+
+⸻
+
+
+
+
 PR #10375 — cri: get pid count from container metrics: 为 CRI 的容器统计接口增加了 当前进程数（PID count） 的上报能力，提升了容器资源可观测性。
 
 ⸻
