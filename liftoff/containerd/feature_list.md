@@ -1,3 +1,67 @@
+PR #10651: runc-shim: Fix races / prevent init exits from being dropped
+
+一句话总结（What changed）
+
+修复了 runc-shim 中处理容器 init 进程退出时的竞态条件，防止容器状态未被正确记录或遗失 init exit 状态。
+
+⸻
+
+为什么这么做（Why）
+
+在高并发或快速容器销毁的情况下，init 进程的退出信号可能会在 shim 的 serve loop 启动前发生，导致：
+	•	容器退出事件丢失
+	•	容器状态不一致
+	•	调用方永远等待不到 exit 状态（严重影响可靠性）
+
+⸻
+
+主要改动（Where）
+	1.	重构了 shim 的 initExitCh 注册与处理时序：
+	•	提前初始化 shim 状态跟踪通道。
+	•	避免 race：在 serve 启动前，先准备好 exit 状态处理通路。
+	2.	增强 monitor 与 task 的交互逻辑：
+	•	引入更早期的监听 init exit 的路径。
+	•	解决任务退出时未能上报的问题。
+
+⸻
+
+效果（Impact）
+	•	提高容器状态一致性与可靠性：即使容器快速退出，也不会错过 init 退出信号。
+	•	对依赖快速 spin-up/down 的 serverless 或 ephemeral 容器工作负载尤其关键。
+	•	消除 shim 层的潜在僵尸任务与资源泄露风险。
+
+
+
+
+
+PR #10177: Multipart Layer Fetch: 为 containerd 增加了对镜像 layer 的**多线程并发分块下载（multipart fetch）**能力，以提升大镜像拉取性能。
+
+⸻
+
+为什么这么做（Why）
+
+为了解决在拉取大型镜像（特别是大 layer）时存在的单线程 I/O 瓶颈，尤其在高速网络或分布式节点环境中会导致镜像下载时间过长。
+
+⸻
+
+主要改动（Where）
+	1.	引入新的配置项 performance：
+	•	包含 MaxConcurrentDownloads 与 ChunkSize。
+	•	可通过配置文件注入到 resolver 行为中。
+	2.	修改 fetch 调用链：
+	•	在 remotes/docker/fetcher.go 中增加并发 chunk fetch 的逻辑。
+	•	条件触发：只有在 performance 被显式设置时才使用 multipart fetch。
+	3.	统一通过 fetchHandler 注入 fetch 策略：
+	•	包括 chunk fetch 和 fallback 逻辑，确保兼容性。
+
+⸻
+
+效果（Impact）
+
+用户可以通过配置项启用并发拉取镜像 layer，极大地提升了容器 cold start 时镜像下载的性能，尤其对大模型镜像、AI 推理框架等镜像场景非常友好。
+
+
+
 PR #11006: Add content create event: 此 PR 为 containerd 添加了一个新的事件类型 ContentCreate，用于在内容创建时发出通知，增强了系统的可观测性和事件驱动能力。
 
 ⸻
