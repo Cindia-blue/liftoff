@@ -1,3 +1,35 @@
+PR #10375 — cri: get pid count from container metrics: 为 CRI 的容器统计接口增加了 当前进程数（PID count） 的上报能力，提升了容器资源可观测性。
+
+⸻
+
+背景知识：
+
+在 Kubernetes 使用 containerd 时，ContainerStats 接口用于提供每个容器的资源使用信息（CPU、内存、IO 等），但此前并没有包含容器中的进程数（pids）。而在实际运维与限额管理中，监控容器内的进程数非常重要（尤其是避免 PID 爆炸）。
+
+Linux cgroup 提供了 pids.current 字段，可以精确地反映容器中的活跃进程数。
+
+⸻
+
+这个 PR 解决了什么问题？
+	•	补全了 CRI 容器统计中对 PID 数量的缺失
+	•	使 crictl stats 之类的工具可以获取到 PID 信息
+	•	有助于 Kubernetes 基于 metrics 进行容器健康检查或自动限流
+
+⸻
+
+实现要点：
+	•	修改了 pkg/cri/server/container_stats.go
+	•	调用 ContainerMetrics 接口，获取容器的 metrics 报文
+	•	从 metrics 中提取 pids.current 字段，填入 ContainerStats 的 Process 字段中
+	•	最终在 CRI 响应中增加 stats.Process.Pids.Current 字段
+
+
+
+PR #9470：add use systemd cgroup e2e
+	•	改动内容：为 containerd 添加了使用 systemd cgroup 驱动的端到端（e2e）测试配置选项。
+	•	影响效果：验证 containerd 在启用 SystemdCgroup = true 场景下的行为，提升对 systemd 驱动下资源隔离功能的测试覆盖率与稳定性保障。
+
+
 PR #10980：Remove confusing warning in cri runtime config migration
 	•	改动内容：移除了在 CRI runtime 配置迁移期间输出的误导性 warning 日志。
 	•	影响效果：减少用户在 containerd 升级或运行时看到无实际影响的警告信息，提升日志可读性与用户信任感。
