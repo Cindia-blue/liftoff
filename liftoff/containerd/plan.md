@@ -26,3 +26,7 @@ plumbing	底层逻辑 glue code（如 server/client 交互接口、proto 接口�
 repo:containerd/containerd is:pr is:merged <关键词> created:2023-01-01..2025-05-01 label:size/XL
 
 是否需要我根据你明天的重点方向（比如 plugin or snapshot）提前列一组推荐 PR？我可以帮你直接筛出前 5 个。
+
+repo:containerd/containerd is:pr is:merged "Add release notes" 
+
+然后选出来highlight的
