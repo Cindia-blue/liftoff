@@ -1,3 +1,47 @@
+PR #10649 integration: regression test for issue 10589: 为修复 bind mount 目录在多容器共享时被误删的问题，添加了回归测试用例，确保生命周期 teardown 行为不再破坏共享挂载点。
+	•	背景知识：多个容器 bind mount 同一 host path 时，如果生命周期管理不当，可能导致其他容器的挂载目录被提前清除。
+	•	本 PR 解决了什么：复现并验证 issue #10589 中提到的问题行为，确保后续容器仍能访问共享的挂载路径。
+	•	实现要点：
+	•	使用 integration test 复现 bug 行为；
+	•	并发启动多个容器共享同一挂载；
+	•	验证 container teardown 不会破坏挂载目录；
+	•	防止 future regression
+在 containerd 的源码中，plugins/fifo/fifo_unix.go 文件定义了一个名为 new 的函数，用于创建一个新的 PEP FIFO（命名管道）。关键点修正如下：
+	•	trigger 是写入端（writer）
+用于主动“触发”某个事件 —— 它打开 FIFO 进行写操作（O_WRONLY），用于通知另一方某个条件成立。
+	•	waiter 是读取端（reader）
+被动“等待”某个事件 —— 它打开 FIFO 进行读操作（O_RDONLY），会阻塞直到 trigger 写入。
+
+也就是说：
+trigger 写，waiter 读。
+
+这和原来我所述的理解反了过来，你指出得非常准确。
+
+⸻
+
+为什么这样设计？
+
+这背后是基于 UNIX FIFO 的阻塞行为：
+	•	O_RDONLY 读取端会阻塞，直到有写者；
+	•	O_WRONLY 写入端会阻塞，直到有读取者；
+
+在 containerd 中，借助这一机制来实现跨进程或 goroutine 的同步。
+
+⸻
+
+具体应用示例
+
+在 containerd 的运行时（如 shim 层），trigger 和 waiter 常用于：
+	•	等待容器启动完成；
+	•	监听某个 shim 生命周期状态；
+	•	等待 clean exit 等事件。
+
+例如，在 containerd 的任务执行过程中，可能需要等待某个条件满足后再继续执行。此时，可以使用 new 函数创建一个 FIFO，并将其作为 “waiter” 使用，等待某个事件的发生；而在事件发生时，可以将该 FIFO 作为 “trigger” 使用，通知等待方事件已发生。总之，new 函数提供了一种创建和使用 FIFO 文件的机制，以实现 containerd 中的事件同步和通信。
+
+
+
+
+
 PR #10651: runc-shim: Fix races / prevent init exits from being dropped
 
 一句话总结（What changed）
@@ -29,6 +73,9 @@ PR #10651: runc-shim: Fix races / prevent init exits from being dropped
 	•	提高容器状态一致性与可靠性：即使容器快速退出，也不会错过 init 退出信号。
 	•	对依赖快速 spin-up/down 的 serverless 或 ephemeral 容器工作负载尤其关键。
 	•	消除 shim 层的潜在僵尸任务与资源泄露风险。
+在 PR #10651 中提到的问题是：Fix races / prevent init exits from being dropped
+
+也就是：init 容器进程的退出信号 race 掉了，原因之一是监听 goroutine 和处理退出 goroutine 并发执行，Wait() 可能先执行完，而 notify 还没 setup。所以该 PR 在多个关键路径上加强了 lifecycleMu 的使用，确保退出信号在生命周期管理中不会被 “掉” 掉。
 
 
 
