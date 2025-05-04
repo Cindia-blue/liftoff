@@ -1,3 +1,24 @@
+PR #8989: Add image delete target
+
+一、改动目的：
+	•	为 image 对象增加了可配置的 delete target 行为。
+	•	以前删除镜像时，只会清除 image object（元信息），但不会清理对应的内容地址（content blobs）。
+	•	该 PR 增加了明确的 “删除目标” 配置，让调用者可以选择是否清除 content store 中的内容。
+
+二、关键改动：
+	•	引入新的删除模式 DeleteTarget（例如：
+	•	DeleteTargetOnlyImage：仅删除 image record；
+	•	DeleteTargetWithContent：删除 image 及其所有 content blob；
+	•	修改了 client.ImageService().Delete(...) 接口与行为逻辑；
+	•	增加测试用例验证两种模式下的行为是否正确。
+
+三、为何要这样做？
+	•	在实际场景中（如自动化清理、多租户系统、GC 优化）用户可能希望镜像删除时自动清除 content；
+	•	也有用户希望保留 content（例如多个 tag 共用同一 blob）；
+	•	提供显式控制可以满足更丰富的运维策略。
+
+
+
 PR #10762 “Enable HTTP debug and trace for transfer based puller” 是 containerd 2.1.0-rc.0 版本中的一个重要更新，旨在增强 transfer-based puller 的调试能力，特别是在处理多层镜像拉取（如 multipart layer fetch）时。 ￼
 
 主要改动
