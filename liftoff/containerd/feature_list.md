@@ -1,3 +1,21 @@
+PR #9736「Store bootstrap parameters in sandbox metadata」的主要目标是将沙箱（sandbox）初始化时的关键参数持久化存储到其元数据中。这一改动增强了 containerd 在运行时对沙箱配置的可追溯性和可管理性，尤其在调试和状态恢复等场景中具有重要意义。
+
+🧩 主要改动内容
+	1.	引入 Bootstrap 参数结构体：PR 中定义了一个新的结构体 Bootstrap，用于封装沙箱初始化所需的关键参数，如命名空间（namespace）、运行时名称（runtime name）、运行时选项（runtime options）等。
+	2.	存储至沙箱元数据中：这些 bootstrap 参数被序列化后，存储在沙箱的元数据扩展字段（Extensions["bootstrap"]）中。这样，containerd 的其他组件或插件可以在需要时访问这些初始化参数。
+	3.	更新元数据处理逻辑：为了支持新的 bootstrap 参数，PR 对相关的元数据处理逻辑进行了调整，确保在创建和管理沙箱时能够正确处理这些参数。
+
+🔧 技术细节
+	•	结构定义：Bootstrap 结构体包含了沙箱初始化所需的所有关键参数。
+	•	元数据存储：使用 typeurl.MarshalAny 将 Bootstrap 实例序列化，并存储到沙箱的元数据扩展字段中。
+	•	访问方式：其他组件可以通过 GetExtension("bootstrap") 方法访问并反序列化这些参数，以获取沙箱的初始化信息。
+
+🧠 影响与意义
+	•	增强可观测性：通过将初始化参数持久化，containerd 在运行时可以更容易地追踪和调试沙箱的配置问题。
+	•	提高稳定性：在系统重启或异常恢复的情况下，持久化的 bootstrap 参数有助于恢复沙箱的原始状态，确保系统的稳定运行。
+	•	支持扩展性：这一改动为未来 containerd 的功能扩展提供了基础，例如更复杂的沙箱管理策略或与其他系统的集成。
+
+
 PR #8989: Add image delete target
 
 一、改动目的：
