@@ -1,3 +1,35 @@
+PR（#8268）是 containerd 对 sandbox 模块进行架构重构 的关键性变更，其核心目标是将原本集中在 runtime/v2/service_sandbox.go 中的沙箱控制逻辑进行模块化（plugin 化），并支持通过配置注入 sandboxer 行为，从而增强灵活性和扩展性： 将 sandbox 控制器抽象为插件，并引入 sandboxer 配置机制，使 containerd 更易于支持不同类型的沙箱实现。
+
+⸻
+
+关键改动内容：
+	1.	引入 sandboxer.Config 结构：
+	•	用于支持通过 runtime 配置注入 sandboxer 的行为控制。
+	•	如：sandbox root 路径、平台配置等。
+	2.	将 sandbox controller 移入 plugin 系统中管理：
+	•	每个 sandboxer 实现现在以 plugin 注册。
+	•	控制器逻辑不再集中在 core，而是注册为插件。
+	•	插件通过接口如 sandbox.Controller 实现控制逻辑。
+	3.	模块拆分路径如下：
+	•	services/sandbox/controller_service.go: gRPC 层服务定义，暴露 sandbox 控制 API。
+	•	sandbox/controller.go: 定义 Controller 接口，各 plugin 通过实现它来支持自己的 sandbox 控制逻辑。
+	•	sandbox/plugin.go: 注册插件的实际逻辑。
+	•	sandbox/config/config.go: 定义 sandbox 配置结构，支持通过 TOML 文件配置。
+	4.	默认实现（shim sandboxer）也被移至 plugin 中，路径：
+	•	sandbox/runtime/runhcs-v1: Windows 的 shim 实现。
+	•	sandbox/runtime/test: 测试用的 shim 实现。
+
+⸻
+
+为什么这么做？
+	•	原问题： 原先所有 sandbox 控制都在 runtime/v2/service_sandbox.go，难以支持多平台或 shim 类型扩展。
+	•	目标： 提供统一的接口和插件机制，让不同平台（如 Linux, Windows）可以自定义控制器而不互相干扰。
+	•	附带收益： 让 shimless sandbox、multi-tenant runtime、以及 future abstraction 更加可行。
+
+
+
+
+
 PR #9736「Store bootstrap parameters in sandbox metadata」的主要目标是将沙箱（sandbox）初始化时的关键参数持久化存储到其元数据中。这一改动增强了 containerd 在运行时对沙箱配置的可追溯性和可管理性，尤其在调试和状态恢复等场景中具有重要意义。
 
 🧩 主要改动内容
