@@ -1,4 +1,14 @@
-这个 PR [release/1.7] Fix issue with using invalid token to retry fetching layer #10065 的一句话总结如下：
+Update runc-shim to process exec exits before init #9927:  该 PR 修复了 runc-shim 在处理 exec 进程退出顺序时可能发生的竞态条件，确保 exec 退出事件优先于 init，增强任务生命周期的稳定性。
+
+改了什么？怎么改的？
+	•	修改了 runc-shim 的 task handler，使得当有 exec 进程时，其退出状态优先被上报，避免与 init 的 wait 顺序冲突。
+	•	对 shim 的 wait 和 processExit 流程进行了顺序控制，解决可能出现的“exec 进程已退出但未被正确上报”的问题
+
+
+PR #10008 Add support for HPC port forwarding : 该 PR 为 containerd 增加了 HPC 环境下的端口转发功能，允许用户在受限网络中通过安全隧道访问容器内的服务。
+
+
+PR [release/1.7] Fix issue with using invalid token to retry fetching layer #10065 的一句话总结如下：
 修复了 Containerd 在拉取镜像 layer 时，因重复使用已失效的认证 token 导致拉取失败的问题，确保在认证失败后能正确地重新获取新的 token 进行重试。
 
 ⸻
