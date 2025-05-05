@@ -1,3 +1,56 @@
+这个 PR [release/1.7] Fix issue with using invalid token to retry fetching layer #10065 的一句话总结如下：
+修复了 Containerd 在拉取镜像 layer 时，因重复使用已失效的认证 token 导致拉取失败的问题，确保在认证失败后能正确地重新获取新的 token 进行重试。
+
+⸻
+
+主要解决的问题：
+在某些 registry（如 Docker Hub 或私有仓库）中，token 认证机制比较严格，如果 Containerd 在尝试拉取镜像 layer 失败后继续复用原来的 token，那么第二次尝试依然会失败。这会导致整个 pull 操作失败，尤其在网络环境不稳定或 token 有效期较短的场景下更易复现。
+
+⸻
+
+核心改动位置与逻辑：
+	1.	remote/handlers.go：在 blob 拉取失败（特别是遇到 401 Unauthorized）之后，不再重用旧的 token，而是：
+	•	强制重新走一次 resolver 的认证流程；
+	•	清除旧的 token header；
+	•	重新构造带新 token 的请求进行 retry。
+	2.	增强 retry 机制：增加对认证失败（401）的 retry path 的特殊处理逻辑，不再对所有错误统一处理。
+	3.	测试保障：虽然 PR 本身没有添加复杂的测试，但它修复了 已报告的问题 #9794，并得到了用户验证。
+
+⸻
+
+是否值得看？
+是的，特别是如果你将来要负责 Container Runtime 的网络交互或认证链路，这种 token-based authentication 与 retry policy 是基础能力。PR 展现了如何在请求链路中优雅地处理认证失败并重新触发身份认证流程，非常值得作为学习网络安全和重试机制的范例。
+
+
+
+
+
+Automatically decompress archives for transfer service import #9989 [release/1.7]:为 Transfer Service 的 Import 操作添加了对 .tar.gz、.tgz、.tar.xz 等压缩格式的自动解压支持，提升用户使用 Transfer Service 进行镜像导入的便捷性。
+
+⸻
+
+主要解决的问题：
+之前 Transfer Service 的 Import 接口只能处理已解压的 .tar 文件；但用户往往从其他系统（如备份或构建流水线）中拿到的是压缩格式的 .tar.gz、.tgz 或 .tar.xz 文件。这种情况下需要用户手动解压再导入，不方便也易出错。
+
+⸻
+
+核心改动位置与逻辑：
+	1.	检测文件类型：在 importer.go 中增加逻辑，根据文件的 magic number 检测文件是否为 gzip、xz 等压缩格式。
+	2.	自动解压路径：
+	•	如果是 .tar.gz 或 .tgz，使用 gzip reader；
+	•	如果是 .tar.xz，使用 xz reader；
+	•	如果是 .tar，直接处理。
+	3.	错误处理增强：对于无法识别或解压失败的情况，会返回更明确的错误，避免 silent failure。
+	4.	测试用例补充：增加了多个不同压缩格式下的单元测试，确保兼容性与稳定性。
+
+⸻
+
+是否值得看？
+是的，特别适合你现在关注 Transfer Service 和 Containerd 分发路径时看这个 PR。它展现了如何优雅地将自动格式检测与解压整合进已有的 import 流程，并提升用户体验，是代码清晰、变更粒度合理的一个典范。
+
+
+
+
 PR（#8268）是 containerd 对 sandbox 模块进行架构重构 的关键性变更，其核心目标是将原本集中在 runtime/v2/service_sandbox.go 中的沙箱控制逻辑进行模块化（plugin 化），并支持通过配置注入 sandboxer 行为，从而增强灵活性和扩展性： 将 sandbox 控制器抽象为插件，并引入 sandboxer 配置机制，使 containerd 更易于支持不同类型的沙箱实现。
 
 ⸻
