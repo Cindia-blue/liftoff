@@ -1,4 +1,23 @@
-Update runc-shim to process exec exits before init #9927:  该 PR 修复了 runc-shim 在处理 exec 进程退出顺序时可能发生的竞态条件，确保 exec 退出事件优先于 init，增强任务生命周期的稳定性。
+PR #9768 Add timeout to drain exec io: 该 PR 为容器 exec I/O 的 drain 操作增加了超时机制，防止在进程退出后 I/O 阻塞导致容器或调用方卡住的问题。
+
+⸻
+
+改了什么？怎么改的？
+	•	问题背景：当容器内 exec 的子进程退出后，containerd 会尝试 drain 掉其 stdout/stderr。但某些情况下，这个 drain 操作会 hang（如：没有及时关闭 FD 或输出管道卡死），从而导致整个命令的调用链阻塞。
+	•	新增行为：
+	•	增加配置项 DrainExecSyncIOTimeout，用于控制 drain 的最大时长；
+	•	若超时未完成 drain，containerd 会跳过此步骤并发出日志警告；
+	•	支持通过 CRI 配置文件显式开启或禁用该功能；
+	•	添加了针对超时配置的验证逻辑和单测。
+
+
+PR #9828 runc-shim: process exec exits before init (w/o extra locks!) #9828: 是对 containerd-shim 的关键修复，旨在解决当容器的 init 进程和 exec 进程几乎同时退出时，事件上报顺序错误的问题。该问题可能导致 docker exec 命令挂起，因为 Docker 在接收到 init 的退出事件后会删除容器，从而无法处理后续的 exec 退出事件。 ￼
+
+改动内容：
+该修复引入了一个 pendingExecs 机制，用于在处理 init 进程的退出事件之前，确保所有挂起的 exec 退出事件已被处理。通过这种方式，确保了事件的正确顺序，避免了客户端在处理 exec 退出事件时遇到问题。 ￼
+
+
+PR #9927 Update runc-shim to process exec exits before init:  该 PR 修复了 runc-shim 在处理 exec 进程退出顺序时可能发生的竞态条件，确保 exec 退出事件优先于 init，增强任务生命周期的稳定性。
 
 改了什么？怎么改的？
 	•	修改了 runc-shim 的 task handler，使得当有 exec 进程时，其退出状态优先被上报，避免与 init 的 wait 顺序冲突。
