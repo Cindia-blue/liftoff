@@ -31,4 +31,4 @@
 	•	Prometheus + CloudWatch 联动成本指标（e.g. $/pod, $/job）
 	•	成本效率指标设计（如 $/RPS, $/job-success）
 
-请展示Code Review实例（比如摘取containerd的PR diff为蓝本） + AWS成本优化案例，结合实际例子 给出核心原则讲解
+请展示一个Code Review实例（比如摘取containerd的PR diff为蓝本） + 一个AWS成本优化案例，结合实际例子 给出核心原则讲解

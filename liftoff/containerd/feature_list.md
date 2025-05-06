@@ -1,4 +1,71 @@
-Propagate deprecation list to runtime status (#9819)
+fix: shimv1 leak issue (#9344)
+Commit: 449912857
+理由：
+	•	涉及 shimv1 进程泄漏问题 → 直接影响 container 生命周期管理；
+	•	若未清理，可能造成 orphaned shim，占用资源 & 无法清理；
+	•	属于典型的 长期运行系统资源回收风险，值得深入理解如何 shim shutdown、如何 hook reaper、以及 containerd shim model。
+归类建议： shim / recovery
+
+
+
+Expose usage of deprecated features (#9315)
+Commits:
+	•	60d48ffea ctr: new deprecations command
+	•	b708f8bfa deprecation: new package for deprecations
+	•	9b7ceee54 warning: new service for deprecations
+理由：
+	•	建立了一套内建 deprecation 监控/可观测性框架；
+	•	可以记录 plugin/config/pull API 层面正在使用的 deprecated features；
+	•	对 Cloud Runtime 稳定性演进、配置迁移策略、版本兼容影响评估都极其关键；
+	•	属于 observability + feature lifecycle 管理层重要机制改进。
+
+
+
+
+
+fix: cri: add deprecation warnings for mirrors, auths, configs (#9327)
+Commits： 多个 commit 拆分 warning 来源
+	•	689a1036d auth
+	•	152c57e91 config
+	•	8c38975bf mirrors
+理由：
+	•	对用户 registry 配置行为增加告警；
+	•	结合 #9315 的 deprecation framework，这相当于在 CRI 层提前探测不兼容风险；
+	•	可帮助团队主动发现未来的 break risk，防止 registry pull 问题导致 incident。
+ 
+ 
+ 
+ 
+ 
+ 
+ PR #9252 中，开发者为转换后的 Docker Schema 1 镜像添加了一个新的标签。这个标签的作用是标识这些镜像的来源格式，从而在后续的处理过程中提供更好的兼容性和可追溯性。
+
+ 
+ 
+ PR #9235（“remotes: add handling for missing basic auth credentials”）中，开发者针对在拉取私有镜像时可能遇到的 “no basic auth credentials” 错误，增强了 containerd 的远程模块（remotes）的处理能力。
+PR #9235 的核心改动： 该 PR 的主要目的是提升 containerd 在处理私有镜像仓库认证时的健壮性。
+在实际应用中，用户可能通过配置文件（如 config.toml）或命令行参数提供认证信息。
+该 PR 通过增强 remotes 模块的逻辑，使其在缺失基本认证信息时，能够更优雅地处理错误，避免程序崩溃或返回不明确的错误信息。
+
+
+
+PR #9209 旨在修复 containerd-shim-runc-v2 中 create handler 可能导致的死锁问题。
+在 containerd-shim-runc-v2 中，create handler 负责处理容器创建请求。
+Note that handleStarted needs to be aware of whether s.mu is already held
+// when it is called. If s.mu has been held, we don't need to lock it when
+// calling handleProcessExit.
+具体来说，containerd-shim-runc-v2 只有 4 个队列来处理大量的 goroutine，当并发量很大时，这些队列可能成为瓶颈，导致处理延迟或阻塞
+
+
+PR #9299（Fix ambiguous TLS fallback），该修复主要解决了在处理镜像拉取时 TLS 回退逻辑不明确的问题。
+在某些配置场景下，containerd 在尝试从私有镜像仓库拉取镜像时，可能会错误地回退到不安全的 HTTP 连接，或在 TLS 验证失败时未能正确处理，导致镜像拉取失败或安全风险。
+
+
+
+PR #9299 对此进行了修复，明确了 TLS 回退的逻辑，确保在配置了自签名证书或跳过 TLS 验证的情况下，containerd 能够正确处理镜像拉取请求，避免不必要的失败或安全隐患。
+
+
+PR#9819 Propagate deprecation list to runtime status (#9819)
 	•	解决了什么？
 在 CRI 返回的 runtime status 中未传递出已废弃的配置项，导致上层（如 kubelet）无法感知底层组件 deprecation 状态。
 	•	改了哪里？
