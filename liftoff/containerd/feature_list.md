@@ -1,4 +1,21 @@
-ImagePull should close http connection if there is no available data to read. #9409: 该 PR 修复了在镜像拉取过程中，当 HTTP 响应体为空时未及时关闭连接的问题，防止资源泄露并提高系统稳定性。
+Propagate deprecation list to runtime status (#9819)
+	•	解决了什么？
+在 CRI 返回的 runtime status 中未传递出已废弃的配置项，导致上层（如 kubelet）无法感知底层组件 deprecation 状态。
+	•	改了哪里？
+修改了 pkg/cri/server 的 status 构建逻辑，附带将 deprecated 字段注入返回值。
+	•	归类建议： plumbing（属于跨层 glue 信息传递）
+
+
+
+Fix image pinning when image is not pulled through cri (#9785)
+	•	解决了什么？
+当镜像不是通过 CRI 拉取（如用 ctr 工具或其它方式）时，pin 标记未正确设置，导致镜像可能被 GC 回收。
+	•	改了哪里？
+修改了 image 管理逻辑中的 pin 状态判断，确保即使绕过 CRI 也能被标记保留。
+	•	归类建议： gc
+
+
+PR # 9409 ImagePull should close http connection if there is no available data to read. #9409: 该 PR 修复了在镜像拉取过程中，当 HTTP 响应体为空时未及时关闭连接的问题，防止资源泄露并提高系统稳定性。
 
 ⸻
 
