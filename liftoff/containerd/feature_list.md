@@ -1,3 +1,21 @@
+ImagePull should close http connection if there is no available data to read. #9409: 该 PR 修复了在镜像拉取过程中，当 HTTP 响应体为空时未及时关闭连接的问题，防止资源泄露并提高系统稳定性。
+
+⸻
+
+改了什么？怎么改的？
+	•	问题背景：在使用 ImagePull 拉取镜像时，如果 HTTP 响应体没有可读数据，连接可能未被及时关闭，导致资源泄露。
+	•	修复方式：
+	•	在检测到无可读数据的情况下，显式关闭 HTTP 连接。
+	•	确保所有异常路径都能正确释放资源，防止连接泄露。
+
+⸻
+
+关键词分类建议：
+	•	归类关键词：auth / plumbing
+	•	推荐理由：该 PR 涉及镜像拉取过程中的连接管理，属于底层逻辑优化，提升了系统的健壮性和资源管理能力。
+	
+
+
 PR #9768 Add timeout to drain exec io: 该 PR 为容器 exec I/O 的 drain 操作增加了超时机制，防止在进程退出后 I/O 阻塞导致容器或调用方卡住的问题。
 
 ⸻
