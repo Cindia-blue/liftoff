@@ -1,3 +1,53 @@
+Initial sandbox API CRI integration (implement Controller.Start) #7228: 该 PR 将新引入的 Sandbox API 与 CRI 接口集成，首次实现了 Controller.Start 的实际逻辑，标志着 containerd 向 pod-level runtime 抽象迈出关键一步
+
+
+ Implement RuntimeConfig CRI call #8722 : 该 PR 实现了 CRI 层 RuntimeConfig gRPC 调用的支持，允许 Kubernetes kubelet 在运行中通过 CRI 动态更新 runtime 配置，例如 pause image，打通了 config runtime 热更新链路。
+
+
+Sandbox API #6703:该 PR 定义并注册了一个全新的 Sandbox gRPC API，建立了 containerd 对 pod sandbox 的原生抽象，为支持更丰富的 pod-level runtime 模型（如微虚拟机、gVisor、Kata）打下基础。
+
+
+
+ Transfer service #7320 : 新增了 TransferService 接口及默认实现：
+	•	定义在 services/transfer/service.go
+	•	实现了 TransferService 的两大核心方法：
+	•	Export：将镜像导出为 tar/OCI layout 等格式
+	•	Import：将 tar/OCI layout 文件导入为镜像
+
+核心调用链包含：
+	1.	TransferServiceServer 实现了 gRPC 接口，并注册到 containerd server。
+	2.	TransferServer 的方法中使用 content.Store, images.Store, snapshots.Snapshotter 等组件完成导入导出。
+	3.	对 Export 和 Import 请求中引入了 streaming 与 lease 的处理逻辑。
+
+增加了 proto 定义：
+	•	在 api/services/transfer/v1/ 中新增了 proto 文件 transfer.proto
+	•	gRPC 支持 Export / Import 请求 + 响应结构
+
+⸻
+
+这个 PR 解决什么问题 / 提供什么能力？
+
+引入统一 Transfer 接口，目标是：
+	•	替代或统一之前的镜像导出路径（如 ctr image export）
+	•	构建镜像迁移的基础能力（image mirroring / replication）
+	•	便于外部调用方将镜像持久化到外部系统，如 remote registry、tar、OCI layout
+
+也就是说：containerd 从这一步开始，为“镜像的 Import/Export 生命周期”搭建了独立可编排的服务模块。
+
+⸻
+
+这个 PR 的设计为什么重要？（你的技术 narrative）
+
+你可以这样说：
+
+This PR introduces the TransferService abstraction into containerd, which decouples image import/export logic from CLI tools and exposes it via a dedicated gRPC API. It’s a foundational step toward building image replication and mirroring strategies that operate independent of the runtime interface. Architecturally, it separates the concern of content packaging from image management.
+
+
+
+
+
+
+
 fix: shimv1 leak issue (#9344)
 Commit: 449912857
 理由：
