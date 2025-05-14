@@ -1,3 +1,8 @@
+
+
+
+
+
 Initial sandbox API CRI integration (implement Controller.Start) #7228: 该 PR 将新引入的 Sandbox API 与 CRI 接口集成，首次实现了 Controller.Start 的实际逻辑，标志着 containerd 向 pod-level runtime 抽象迈出关键一步
 
 
