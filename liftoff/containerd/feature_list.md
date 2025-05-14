@@ -1,3 +1,19 @@
+ Allow configuration of different log formats: text, json #4803: 该 PR 增加了对 containerd 守护进程日志格式的配置支持，允许用户通过 config.toml 配置为 text 或 json 格式输出日志，提升了日志的可读性与集成性.
+
+
+
+Optimize Windows and LCOW snapshotters to only create scratch layer on the final snapshot #4643: 优化 Windows 和 LCOW 的 snapshotter，使 scratch layer 仅在最终提交的快照上创建，从而减少不必要的磁盘占用和加快容器创建速度。这一改动通过延迟 scratch 层的生成，避免在中间快照（如 Prepare 阶段）时浪费资源，提升了启动性能和存储效率，尤其适用于多阶段容器生命周期管理。
+
+ 
+ 
+ compression: add support for the zstd algorithm #4809: 为镜像分层添加对 Zstandard (zstd) 压缩算法的支持，提升了解压速度和传输效率，特别适用于高性能镜像分发场景。通过这个改动，containerd 能够识别并解压 .zst 格式的 layer blobs，使其在镜像拉取过程中兼容更多压缩格式，并可配合支持 zstd 的 registry 使用，从而改善传输性能。
+
+
+
+Enable to pass additional handler on pull for stargz-based remote snapshots #1431: 该 PR 允许在拉取镜像时传入额外的处理器（handler），以支持基于 Stargz 的远程快照场景，增强了 remote snapshotter 的扩展性和灵活性。这个改动使得在使用例如 stargz-snapshotter 等 lazy pull 机制时，开发者可以注入自定义处理逻辑，比如处理额外的元数据或进行内容校验，优化镜像拉取与挂载流程。
+
+
+
 PR # 4162 Rework shim logger shutdown process: 这条 PR 通过引入 context 和 WaitGroup，确保 shim logger 在关闭时能安全退出所有读取协程，防止资源泄漏与 panic，显著提升了 containerd 运行时的稳定性与生产环境安全性。
 
 
