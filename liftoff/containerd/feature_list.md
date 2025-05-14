@@ -1,9 +1,8 @@
+PR # 4162 Rework shim logger shutdown process: 这条 PR 通过引入 context 和 WaitGroup，确保 shim logger 在关闭时能安全退出所有读取协程，防止资源泄漏与 panic，显著提升了 containerd 运行时的稳定性与生产环境安全性。
 
 
 
-
-
-Initial sandbox API CRI integration (implement Controller.Start) #7228: 该 PR 将新引入的 Sandbox API 与 CRI 接口集成，首次实现了 Controller.Start 的实际逻辑，标志着 containerd 向 pod-level runtime 抽象迈出关键一步
+PR #7228 Initial sandbox API CRI integration (implement Controller.Start): 该 PR 将新引入的 Sandbox API 与 CRI 接口集成，首次实现了 Controller.Start 的实际逻辑，标志着 containerd 向 pod-level runtime 抽象迈出关键一步
 
 
  Implement RuntimeConfig CRI call #8722 : 该 PR 实现了 CRI 层 RuntimeConfig gRPC 调用的支持，允许 Kubernetes kubelet 在运行中通过 CRI 动态更新 runtime 配置，例如 pause image，打通了 config runtime 热更新链路。
