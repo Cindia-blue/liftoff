@@ -1,3 +1,7 @@
+ eventfd leak #3961： 在 containerd 的 runtime v2 实现中，container 的状态变化（如 exit）通过 eventfd（事件文件描述符）监听；在 Wait() 调用过程中，会为每个进程创建一个新的 eventfd；若在监听过程中进程提前退出，或监听失败，eventfd 没有被显式关闭，导致 fd 泄漏。
+ 
+ 
+ 
  cherry-pick: runtime v2: Close platform in runc shim's Shutdown method. #3907: 在使用 runtime v2（即 shim v2）的 containerd 中，当 shim 被 shutdown 时，需要正确地关闭 platform 对象，释放资源并避免 goroutine 泄漏或 socket 持续占用。
 
 
