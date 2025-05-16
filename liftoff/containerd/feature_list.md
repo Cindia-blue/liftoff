@@ -1,3 +1,12 @@
+ 
+Fix container pid race condition. #3857: 在 container 启动过程中，存在一个竞争条件 —— 如果 containerd 在记录 container pid 到 metadata store 之前崩溃，container 的状态将永远处于不一致状态，因为 pid 丢失，shim 无法清理，也无法恢复。修复逻辑：
+	•	container 启动后，只有在成功启动、pid 获取成功且写入到 metadata 之后，才会标记 container 启动成功；
+	•	启动失败的 container 将立即进入清理流程，防止“stuck in created”；
+	•	这个修复实际上明确了 containerd 中“pid is part of state”的状态机完整性。
+
+
+ 
+ 
  Allow configuration of different log formats: text, json #4803: 该 PR 增加了对 containerd 守护进程日志格式的配置支持，允许用户通过 config.toml 配置为 text 或 json 格式输出日志，提升了日志的可读性与集成性.
 
 
