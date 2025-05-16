@@ -99,3 +99,126 @@ shim latency	诊断 shim 启动抖动	runtime/v2/shim	打 log 记录 shim start 
 你已经明确了两个最核心的切入口：入口层配置注入 & 生命周期关键点观测。这两个方向未来也能构建为你入职 Pinterest 的 “小舞台起点”。
 
 需要我帮你做一份【containerd 路径调试实践路线图】Markdown 文档归档吗？或者挑一个路径我们今天开始动手演练？
+
+
+
+
+import (
+    ...
+    "encoding/json"
+    "os"
+    "path/filepath"
+)
+
+func dumpOCISpecToFile(spec *specs.Spec, containerID string) error {
+    path := filepath.Join("/tmp", fmt.Sprintf("oci_spec_%s.json", containerID))
+    file, err := os.Create(path)
+    if err != nil {
+        return err
+    }
+    defer file.Close()
+    encoder := json.NewEncoder(file)
+    encoder.SetIndent("", "  ")
+    return encoder.Encode(spec)
+}
+
+
+
+
+
+import json
+import sys
+
+def extract_oci_info(config_path):
+    with open(config_path) as f:
+        data = json.load(f)
+
+    print("\n=== OCI Spec Summary ===\n")
+
+    print(">> Process args:")
+    print(" ", data.get("process", {}).get("args"))
+
+    print("\n>> Environment variables:")
+    for env in data.get("process", {}).get("env", []):
+        print(" ", env)
+
+    print("\n>> Linux cgroup resources:")
+    print("  CPU:", data.get("linux", {}).get("resources", {}).get("cpu"))
+    print("  Memory:", data.get("linux", {}).get("resources", {}).get("memory"))
+
+    print("\n>> Mounts:")
+    for mnt in data.get("mounts", []):
+        print(f"  - {mnt['destination']} (type={mnt['type']})")
+
+    print("\n>> Namespaces:")
+    for ns in data.get("linux", {}).get("namespaces", []):
+        print(f"  - {ns['type']}")
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Usage: python3 analyze_oci_config.py /path/to/config.json")
+    else:
+        extract_oci_info(sys.argv[1])
+
+
+
+
+
+当然可以！下面是一个 Bash 脚本，能够自动扫描当前运行中的 containerd v2 container 的所有 config.json 文件路径，并调用你之前的 Python 分析工具逐个解析。
+
+⸻
+
+脚本：analyze_all_oci_specs.sh
+
+#!/bin/bash
+
+# 用于分析所有运行中的 containerd v2 container 的 OCI 配置文件
+
+PYTHON_SCRIPT="./analyze_oci_config.py"  # 请确保此路径正确指向你的分析脚本
+
+if [ ! -f "$PYTHON_SCRIPT" ]; then
+    echo "Error: Python analysis script not found at $PYTHON_SCRIPT"
+    exit 1
+fi
+
+BASE_PATH="/run/containerd/io.containerd.runtime.v2.task"
+
+echo "Scanning for OCI config.json files under $BASE_PATH..."
+
+CONFIGS=$(find "$BASE_PATH" -type f -name config.json)
+
+if [ -z "$CONFIGS" ]; then
+    echo "No config.json files found."
+    exit 0
+fi
+
+for CONFIG in $CONFIGS; do
+    echo -e "\n=============================="
+    echo "Analyzing $CONFIG"
+    echo "=============================="
+    python3 "$PYTHON_SCRIPT" "$CONFIG"
+done
+
+
+⸻
+
+✅ 使用方法：
+	1.	将此脚本保存为 analyze_all_oci_specs.sh
+	2.	确保你有 analyze_oci_config.py（上面那段 Python 脚本）
+	3.	给脚本赋可执行权限：
+
+chmod +x analyze_all_oci_specs.sh
+
+	4.	执行：
+
+./analyze_all_oci_specs.sh
+
+
+⸻
+
+该脚本会依次打印每个正在运行的 container 的 OCI spec 核心内容，方便你快速检查：
+	•	哪些配置被正确注入了？
+	•	哪些 container 没有 memory.low、cpu.shares 等配置？
+	•	是否有 namespace 或 capabilities 不符合预期？
+
+是否还想我继续补一个增强版本（比如加导出 summary 到 markdown 或 CSV）？
