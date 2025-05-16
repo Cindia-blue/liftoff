@@ -1,4 +1,11 @@
- 
+ Use cached state instead of runc state. #3711:  Title: containerd PR #3711 — Eliminating Redundant runc state Calls via shim State Caching
+- containerd shim originally spawns multiple `runc state` calls during container exec;
+- This caused performance degradation in Kubernetes and Docker exec;
+- PR #3711 caches shim status internally and reduces syscall load drastically;
+- Applicable to lifecycle tracing, metrics collection, and exec path diagnostics.
+
+
+
 Fix container pid race condition. #3857: 在 container 启动过程中，存在一个竞争条件 —— 如果 containerd 在记录 container pid 到 metadata store 之前崩溃，container 的状态将永远处于不一致状态，因为 pid 丢失，shim 无法清理，也无法恢复。修复逻辑：
 	•	container 启动后，只有在成功启动、pid 获取成功且写入到 metadata 之后，才会标记 container 启动成功；
 	•	启动失败的 container 将立即进入清理流程，防止“stuck in created”；
