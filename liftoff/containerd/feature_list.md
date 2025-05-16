@@ -1,3 +1,8 @@
+ cherry-pick: runtime v2: Close platform in runc shim's Shutdown method. #3907: 在使用 runtime v2（即 shim v2）的 containerd 中，当 shim 被 shutdown 时，需要正确地关闭 platform 对象，释放资源并避免 goroutine 泄漏或 socket 持续占用。
+
+
+
+ 
  Use cached state instead of runc state. #3711:  Title: containerd PR #3711 — Eliminating Redundant runc state Calls via shim State Caching
 - containerd shim originally spawns multiple `runc state` calls during container exec;
 - This caused performance degradation in Kubernetes and Docker exec;
