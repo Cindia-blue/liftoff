@@ -811,22 +811,5 @@ PR #10611 后（使用 ptrace）大致行为：
 
 该 PR 补全了 image volume 的行为闭环，确保镜像中声明的匿名挂载路径能正确初始化、挂载并被清理，保障数据不丢失、容器运行一致。
 
-*PR #11605 - : image volume feature’s follow-up
 
-一句话总结：
-
-该 PR 对 containerd 的 Image Volume 功能进行后续完善，包括确保镜像中声明的卷路径正确初始化为持久 volume、与容器生命周期解耦，并修复卷未绑定容器时可能的清理与挂载异常问题。
-
-⸻
-
-背景说明：什么是 Image Volume？ • 它来自 OCI image spec 的一个设计：镜像可以在 config.Volumes 字段中声明特定路径为 volume（例如 /var/lib/data）； • containerd 新增此特性后，会在容器首次启动时自动为这些路径创建挂载点； • 类似 docker 默认行为中的 匿名 volume； • 该机制要求 container runtime 跟踪并初始化这些 volume 目录、并在运行时挂载进去，否则用户数据丢失或行为异常。
-
-⸻
-
-这次 PR 做了什么？ • 修复初始化逻辑：确保在未显式绑定 host volume 时，也能为 image volume 预创建挂载点； • 修复清理逻辑：在容器删除时妥善处理未挂载 volume 的释放，防止挂载泄漏或残留； • 提升一致性：使 image volume 行为在不同 runtime backend 上（如 containerd-shim）表现一致； • 更精确的资源绑定关系处理：与 lease/subresource 机制联动。
-
-⸻
-
-简洁记忆句：
-
-该 PR 补全了 image volume 的行为闭环，确保镜像中声明的匿名挂载路径能正确初始化、挂载并被清理，保障数据不丢失、容器运行一致。
+Update CRI to use transfer service for image pull by default #8515：此更新提议将 CRI（Container Runtime Interface）默认使用 transfer service 来拉取镜像，取代之前的混合实现方式。 这样可以利用 transfer store 的新功能，如沙箱解包、凭证助手和镜像验证等
