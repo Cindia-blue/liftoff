@@ -1,3 +1,15 @@
+ *: export RemoveVolatileOption for CRI image volumes #10274:在 overlayfs 中，volatile 是一个挂载选项，用于优化性能但牺牲稳定性。如果系统崩溃，使用 volatile 的挂载点有可能会造成文件系统不一致或数据丢失。 在 containerd 中，如果使用 overlayfs 作为 snapshotter，并在 image volume 的挂载上默认添加 volatile，可能会：为 CRI image volumes 的挂载选项移除 volatile 标志，并将该行为作为导出的可选配置项。
+	•	加快拉镜像和挂载速度（尤其是短生命周期容器）；
+	•	但在崩溃或重启后造成残留目录无法删除或文件结构混乱。
+
+
+
+
+Add option to perform syncfs after pull #9401 :	Adds a feature flag or option to allow containerd to invoke syncfs() after pulling an image . syncfs() is a Linux system call that flushes all pending writes from the filesystem’s dirty page cache to disk for a specific file descriptor (usually tied to a mount point or file).
+ 
+ 
+ 
+ 
  eventfd leak #3961： 在 containerd 的 runtime v2 实现中，container 的状态变化（如 exit）通过 eventfd（事件文件描述符）监听；在 Wait() 调用过程中，会为每个进程创建一个新的 eventfd；若在监听过程中进程提前退出，或监听失败，eventfd 没有被显式关闭，导致 fd 泄漏。
  
  
