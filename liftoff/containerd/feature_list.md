@@ -1,4 +1,8 @@
- *: export RemoveVolatileOption for CRI image volumes #10274:在 overlayfs 中，volatile 是一个挂载选项，用于优化性能但牺牲稳定性。如果系统崩溃，使用 volatile 的挂载点有可能会造成文件系统不一致或数据丢失。 在 containerd 中，如果使用 overlayfs 作为 snapshotter，并在 image volume 的挂载上默认添加 volatile，可能会：为 CRI image volumes 的挂载选项移除 volatile 标志，并将该行为作为导出的可选配置项。
+PR #10579：Add OCI/Image Volume Source support，它为容器启动提供了一种新的挂载来源 —— image volumes，用于支持 OCI image 中的 org.opencontainers.image.source 风格的数据挂载。
+
+
+
+*: export RemoveVolatileOption for CRI image volumes #10274,  [release/1.6] Remove overlayfs volatile option on temp mounts #10333 :在 overlayfs 中，volatile 是一个挂载选项，用于优化性能但牺牲稳定性。如果系统崩溃，使用 volatile 的挂载点有可能会造成文件系统不一致或数据丢失。 在 containerd 中，如果使用 overlayfs 作为 snapshotter，并在 image volume 的挂载上默认添加 volatile，可能会：为 CRI image volumes 的挂载选项移除 volatile 标志，并将该行为作为导出的可选配置项。
 	•	加快拉镜像和挂载速度（尤其是短生命周期容器）；
 	•	但在崩溃或重启后造成残留目录无法删除或文件结构混乱。
 
