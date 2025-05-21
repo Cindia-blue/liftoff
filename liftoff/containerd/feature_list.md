@@ -1,3 +1,47 @@
+
+① #9790 — Move transfer and unpack packages to core
+	•	作用：将 Transfer 和 Unpack 模块正式迁入核心路径，意味着：
+	•	Transfer 不再是边缘插件，而成为 containerd 的核心组成；
+	•	构建了 TransferService 与 snapshot/unpack 的解耦能力；
+	•	文件级变更范围大，结构性强，非常适合作为 Navigation 图的主骨架。
+
+⸻
+
+② #10163 — Add support for ttrpc in transfer and streaming service
+	•	作用：将 Transfer Service 升级为可通过 ttrpc 暴露；
+	•	为 shim 插件与远程 runtime 通讯铺路；
+	•	适配异构平台或未来 TransferService 多节点架构；
+	•	技术含义：transfer -> service boundary 清晰化，便于 trace 与 failover
+
+⸻
+
+③ #9908 — Enable Transfer service to use registry configuration directory
+	•	作用：支持 TransferService 使用 registry 的自定义 config；
+	•	可用于 registry credential、mirror fallback 等策略；
+	•	适配 Pinterest 使用真实 registry 场景时尤为关键（你可以 debug pull error 根因）
+
+⸻
+
+④ #9630 — Update Transfer service to add OCI descriptors to Progress structure
+	•	作用：增强进度跟踪结构，将 descriptor 纳入 Transfer 进度；
+	•	更好地支持 metrics、trace 与用户可见状态；
+	•	便于 future blob retry / caching 可视化分析；
+	•	你可以把它标记为 “observability hook” 节点
+
+⸻
+
+⑤ #10024 — Enable Transfer service API to support plain HTTP
+	•	作用：Transfer service 支持 HTTP fallback，不再强依赖 HTTPS；
+	•	为镜像源灵活配置提供可落地路径；
+	•	适用于 air-gapped 或测试集群；
+	•	属于兼容性增强模块，适合补充在 Transfer entry 节点
+
+
+
+
+
+
+
 PR #10579：Add OCI/Image Volume Source support，它为容器启动提供了一种新的挂载来源 —— image volumes，用于支持 OCI image 中的 org.opencontainers.image.source 风格的数据挂载。
 
 
