@@ -1,3 +1,60 @@
+OverlayFS 相关
+
+1. Make ovl idmap mounts read-only — #10955
+此 PR 增强了 OverlayFS 的安全性，强制将带有 idmapped mount 的 overlay mount 设置为只读，以防止下层写入绕过安全隔离。你掌握了 overlay 在用户命名空间中的挂载策略对 snapshot 一致性和安全模型的影响。
+
+⸻
+
+TransferService 相关
+
+2. Move transfer and unpack packages to core — #9790
+此 PR 将 transfer 和 unpack 模块迁入 containerd 核心，标志着 TransferService 成为主流程的一部分，而不再是边缘工具。你理解了 TransferService 和内容生命周期的结构性路径。
+
+3. Add support for ttrpc in transfer and streaming service — #10163
+支持通过 ttrpc 启用 TransferService 与 streaming service，提升 shim 和 runtime 插件之间通信的解耦性。你掌握了 containerd 模块通信机制的演进趋势。
+
+4. Enable Transfer service to use registry configuration directory — #9908
+此 PR 支持 TransferService 使用 registry 配置文件，增强对镜像仓库认证、镜像源 fallback 的配置能力。你理解了 transfer 逻辑中的外部依赖如何接入。
+
+5. Update Transfer service to add OCI descriptors to Progress structure — #9630
+增强 TransferService 的可观测性，在进度跟踪结构中加入 descriptor 信息，支持 trace 观察与 blob 跟踪。你理解了 metrics 插桩对调试失败和容器重试路径的关键性作用。
+
+6. Enable Transfer service API to support plain HTTP — #10024
+允许 transfer 使用非 HTTPS fallback，有助于在测试环境、air-gapped 集群中实现灵活部署。你掌握了容器拉取失败时 registry fallback 的灵活性设计。
+
+7. Update import and export to allow references to missing content — #9554
+允许 export/import 镜像时跳过缺失 blob，仅导出结构信息（manifest/index）。你理解了 containerd 中 descriptor 结构的引用完整性设计，以及它与内容一致性的权衡。
+
+⸻
+
+GC、Recovery、Lease 管理相关
+
+8. Update metadata snapshotter to lease on already exists — #10187
+修复 snapshotter 逻辑，在 snapshot 已存在时补绑定 lease，避免 GC 误删仍活跃的 snapshot。你掌握了 snapshot 生命周期与 lease 之间的绑定策略。
+
+9. Fix cross-repo mount fallback after authorization failure — #11709
+解决 registry 中跨仓库 mount 因鉴权失败而不能 fallback 的问题。你理解了 registry pull 失败的恢复路径和 snapshot 挂载共享优化机制。
+
+10. Retry last registry host on 50x responses — #11484
+增强 registry pull 的健壮性，当收到 5xx 错误时自动 fallback 到上一个成功主机。你掌握了 transfer 层的多主机容错策略。
+
+⸻
+
+CRI & Sandbox Path 相关
+
+11. internal/cri: simplify netns setup with pinned userns — #10607
+通过绑定 userns 简化 netns 设置，确保沙盒网络生命周期与命名空间绑定，避免资源泄露。你掌握了 sandbox 启动前 namespace 生命周期隔离的设计方式。
+
+12. core/runtime: should invoke shim binary if it doesn’t support Sandbox API — #11793
+增强 runtime 的 fallback 能力，如果当前 shim 不支持 sandbox API，则自动回退使用 shim 二进制。你理解了 container 启动时 controller 分发与兼容性策略。
+
+13. sandbox: use sandboxService in CRI plugin instead of calling controller API directly — #9617
+此 PR 解耦 CRI plugin 与 runtime controller 的直接调用，改用 sandboxService 中间抽象。你掌握了 containerd plugin 结构中的 service vs controller 角色划分。
+
+
+
+
+
 
 ① #9790 — Move transfer and unpack packages to core
 	•	作用：将 Transfer 和 Unpack 模块正式迁入核心路径，意味着：
