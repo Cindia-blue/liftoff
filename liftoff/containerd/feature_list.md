@@ -1,3 +1,42 @@
+Group 1: Runtime & Sandbox Controller Fallback
+
+1. #11793 – core/runtime: should invoke shim binary if it doesn’t support Sandbox API
+	•	目标：理解 shim fallback 路径，尤其在 controller 不支持 Sandbox API 时如何 degrade。
+	•	你的任务：定位 getSandboxController() 的 fallback 实现，分析 CreateSandboxTask() 的调用流程。
+
+2. #9617 – sandbox: use sandboxService in CRI plugin instead of calling controller API directly
+	•	目标：掌握 CRI plugin 与 runtime controller 解耦方式，引入 sandboxService。
+	•	你的任务：绘制 CRI plugin → sandboxService → shim controller 的责任路径图。
+
+⸻
+
+Group 2: Distribution & Registry Retry Logic
+
+3. #11709 – Fix cross-repo mount fallback after authorization failure
+	•	目标：理解 blob reuse 和 registry auth fallback 之间的异常处理路径。
+
+4. #11484 – Retry last registry host on 50x responses
+	•	目标：掌握 TransferService 的 retry resilience；理解 fetcher.go 中 registry 重试逻辑。
+
+5. #11032 – Fix retry logic and concurrency issue with http fallback
+	•	目标：分析并发 registry 请求中 http fallback 的正确使用场景和 bug 修复。
+
+⸻
+
+Group 3: Snapshot Lease & Metadata Tracking
+
+6. #10187 / #10198 / #10199 – Update metadata snapshotter to lease on already exists
+	•	目标：掌握 containerd GC 时避免误删 snapshot 的 lease 补绑定机制。
+	•	你的任务：定位 metadata/snapshot/storage.go 中的 lease 绑定与引用保留逻辑。
+
+7. #9661 – Add support for multiple subscribers to CRI container events
+	•	目标：理解 containerd 中事件分发 fan-out 设计，尤其是 shim → cri plugin 多接收者支持。
+
+
+
+
+
+
 OverlayFS 相关
 
 1. Make ovl idmap mounts read-only — #10955
