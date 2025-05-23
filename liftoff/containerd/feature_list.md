@@ -1,3 +1,130 @@
+Group 4：与 snapshotView / usage / diff / blobchain 相关的关键 PR 总结
+	1.	[#10579] Add OCI/Image Volume Source support
+	•	关键词匹配：snapshotView
+	•	内容：引入了对 OCI 镜像卷源（image volume source）的支持，使得容器可以更灵活地挂载 snapshot 和 volume，在 CRI 接口中提供更强的 runtime 配置能力。
+	•	价值：增强 snapshot 管理的可控性和扩展性，是构建“image-as-volume”模型的关键基础。
+
+⸻
+
+	2.	[#10472] core/metadata: migrate sandboxes bucket into v1
+	•	关键词匹配：snapshotView
+	•	内容：将 metadata 中的 sandbox 存储结构迁移到 v1，重构元数据 layout。
+	•	价值：有助于提升 snapshot 元数据结构的可维护性和一致性，利于未来 diff 与 GC 的分析。
+
+⸻
+
+	3.	[#11006] Add content create event
+	•	关键词匹配：usage
+	•	内容：在内容写入流程中引入了 content create 的事件机制。
+	•	价值：为日志追踪、指标采集和 usage 分析提供了切入点，有利于后续构建精细的资源使用分析逻辑。
+
+⸻
+
+	4.	[#10611] core/mount: use ptrace instead of go:linkname
+	•	关键词匹配：diff
+	•	内容：为了解耦 Go 层与底层 syscall 的直接耦合，引入 ptrace 替代原先使用的 go:linkname 技术。
+	•	价值：提高了安全性与维护性，是对 overlay mount/diff 路径的内聚化处理的一部分。
+
+⸻
+
+	5.	[#10177] Multipart layer fetch
+	•	关键词匹配：blobchain
+	•	内容：实现对大型 OCI layer 的分片并发拉取，提高了 blob 分发效率。
+	•	价值：是对容器镜像拉取路径中的 blobchain 模块的重要优化，有效缓解大镜像拉取延迟。
+	
+
+
+Groups3： 
+
+1.	PR #5597: Containerd takes hours to startup after node reboot
+	•	描述：解决了在节点重启后，containerd 启动缓慢的问题。
+	•	链接：GitHub Issue #5597 ￼
+2.	PR #1014: ‘failed to reserve sandbox name’ error after hard reboot
+	•	描述：修复了在硬重启后，出现的 “failed to reserve sandbox name” 错误。
+	•	链接：GitHub Issue #1014 ￼
+3.	PR #10649: Integration: regression test for issue 10589
+	•	描述：添加了针对 issue 10589 的回归测试，确保在特定条件下的稳定性。
+	•	链接：GitHub PR #10649
+4.	PR #10651: runc-shim: fix races/prevent init exits from being dropped
+	•	描述：修复了 runc-shim 中的竞态条件，防止 init 退出被忽略。
+	•	链接：GitHub PR #10651 ￼
+5.	PR #11793: [carry-11761] core/runtime: should invoke shim binary if it doesn’t support Sandbox API
+	•	描述：在 shim 不支持 Sandbox API 时，确保正确调用 shim 二进制文件。
+	•	链接：GitHub PR #11793
+
+
+
+Group2 – Namespace & Sandbox 结构演进核心 PR 汇总
+
+1. [#9617] Use sandboxService in CRI plugin instead of calling controller
+	•	目的：将 CRI plugin 对 sandbox 的调用从直接访问 controller，抽象成标准化接口 sandboxService。
+	•	作用：提升模块解耦性、便于后续 mock 测试或 shim 插件扩展（为 #11793 fallback 做准备）。
+
+⸻
+
+2. [#9463] Remove sandboxStore from controller
+	•	目的：移除 controller 中维护的本地内存结构 sandboxStore；
+	•	作用：将所有状态操作统一交由 metadata store 管理，避免 crash/restart 状态不一致问题。
+
+⸻
+
+3. [#10607] Simplify netns setup with pinned userns
+	•	目的：在创建 NetNS 时引入 pinned userns，即用户命名空间通过 open FD 强绑定到 NetNS 生命周期中；
+	•	作用：确保 NetNS 和 UserNS 的清理一致性，提升 rootless 场景的安全性与稳定性。
+
+⸻
+
+4. [#10955] Make overlayfs idmap mounts read-only
+	•	目的：对使用 idmap mount 的 overlayfs 强制设为只读；
+	•	作用：防止多个 user namespace 间滥用可写 overlay 层引发权限绕过和文件污染问题。
+
+⸻
+
+5. [#10472] Migrate sandbox metadata to v1
+	•	目的：将原有 sandbox 的 metadata 存储格式迁移至 v1/sandboxes；
+	•	作用：统一生命周期存储结构，利于 future metadata 多 namespace 支持。
+
+⸻
+
+6. [#10579] Add OCI/Image Volume Source support
+	•	目的：支持在 CRI 中使用 image volume source（例如来自镜像的 volume 描述）；
+	•	作用：增强 volume 的灵活性，支持 container run 时 image 中声明的挂载逻辑
+
+
+
+
+
+以下是你昨天阅读的 Group 1 和 Group 2 中 size/XL 的 containerd PR 精要总结，每条包括 PR 标题、编号以及一句话解释，便于你归档使用：
+
+⸻
+
+Group 1 & 2 - containerd XL PR Summary
+	1.	#10177 – Multipart layer fetch
+Introduced optimized blob fetching for multi-part OCI layers, significantly improving performance for large image transfers.
+	2.	#10307 – Support multiple uid/gid mappings [1/2]
+Added foundational support for user namespaces with multiple UID/GID mappings to enhance container isolation and security.
+	3.	#9644 – Sandbox: fix podsandbox recover status issue
+Fixed incorrect recovery behavior in pod sandbox controller to ensure state is properly restored after crash or restart.
+	4.	#9554 – Update import and export to allow references to missing content
+Enabled partial image export/import, allowing references to missing content blobs to support lazy-pull and snapshot recovery.
+	5.	#9598 – Sandbox: add event monitor for podsandbox controller
+Introduced event stream monitoring in sandbox controller to support more reactive state transitions and observability.
+	6.	#9463 – Sandbox: remove sandboxStore from podsandbox controller
+Refactored the sandbox controller by removing embedded state and externalizing metadata handling.
+	7.	#9391 – Sandbox: move CRI Image Service and CRI Base to separate plugins
+Decoupled CRI ImageService and CRI core components into modular plugins for better extensibility and maintainability.
+	8.	#8515 – Update CRI to use transfer service for image pull by default
+Transitioned the CRI image pulling mechanism to use the centralized TransferService, paving the way for deduplication and metrics.
+	9.	#10472 – core/metadata: migrate sandboxes bucket into v1
+Migrated sandbox metadata to a new structured storage format to improve consistency and upgrade handling.
+	10.	#10955 – Make ovl idmap mounts read-only
+Updated overlayfs idmapped mount configuration to enforce read-only semantics for better security in user namespace scenarios.
+
+⸻
+
+如果你需要我把这些 PR 对应的 feature 分类打 tag（比如：runtime / snapshot / sandbox / security / performance），我也可以为你补全。此外，如果你要生成可复制到 Obsidian/Notion 的 Markdown 格式，也可以直接告诉我。我们可以继续进入下一组阅读或练习。你决定！
+
+
 Group 1: Runtime & Sandbox Controller Fallback
 
 1. #11793 – core/runtime: should invoke shim binary if it doesn’t support Sandbox API
